@@ -1,4 +1,4 @@
-name: Java CI Pipeline
+name: Java CI/CD Pipeline
 
 on:
   push:
@@ -14,11 +14,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up JDK 23
+      - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
-          java-version: '23'
+          java-version: '21'
 
       - name: Build with Maven
         run: mvn -B package
@@ -32,7 +32,19 @@ jobs:
           name: java-jar
           path: target/*.jar
 
-      - name: Simulate Deploy by Running the JAR
+      - name: Deploy JAR to WSL Ubuntu via SCP
         run: |
-          java -jar target/*.jar || echo "App started, then stopped (simulated deploy)"
+          sudo apt-get install sshpass -y
+          sshpass -p "$DEPLOY_PASS" scp -o StrictHostKeyChecking=no target/*.jar $DEPLOY_USER@$DEPLOY_HOST:/home/$DEPLOY_USER/deploy/
+        env:
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_PASS: ${{ secrets.DEPLOY_PASS }}
 
+      - name: Run JAR on WSL Ubuntu via SSH
+        run: |
+          sshpass -p "$DEPLOY_PASS" ssh -o StrictHostKeyChecking=no $DEPLOY_USER@$DEPLOY_HOST "java -jar /home/$DEPLOY_USER/deploy/*.jar || echo 'App ran and exited (simulated deployment)'"
+        env:
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_PASS: ${{ secrets.DEPLOY_PASS }}
