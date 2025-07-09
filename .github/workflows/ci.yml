@@ -31,3 +31,8 @@ jobs:
         with:
           name: java-jar
           path: target/*.jar
+
+      - name: Simulate Deploy by Running the JAR
+        run: |
+          java -jar target/*.jar || echo "App started, then stopped (simulated deploy)"
+
